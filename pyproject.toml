@@ -21,8 +21,38 @@ dependencies = [
     "transformers>=4.53.0",
 ]
 
+[project.optional-dependencies]
+test = [
+    "pytest>=7.0.0",
+    "pytest-mock>=3.10.0",
+    "pytest-cov>=4.0.0",
+]
+
 [project.scripts]
 image-search = "image_search_cli:main"
 
 [tool.hatch.build.targets.wheel]
 only-include = ["image_search_cli.py"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+addopts = [
+    "--strict-markers",
+    "--disable-warnings",
+    "-v"
+]
+markers = [
+    "unit: Fast unit tests with mocked dependencies",
+    "integration: Slower integration tests with real models",
+    "slow: Very slow tests that download models"
+]
+
+[dependency-groups]
+test = [
+    "pytest>=8.4.1",
+    "pytest-cov>=6.2.1",
+    "pytest-mock>=3.14.1",
+]

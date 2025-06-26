@@ -35,13 +35,33 @@ This is an image search CLI tool that uses CLIP (Contrastive Language-Image Pre-
 ### Setup and Installation
 ```bash
 # Install dependencies using uv (required)
-uv add click sqlite-vec openai-clip pillow torch==2.2.0 torchvision setuptools
+uv sync
+
+# Install test dependencies
+uv sync --group test
 
 # Make script executable
 chmod +x image-search
 
 # Test basic functionality
 uv run python ./image-search --help
+```
+
+### Testing
+```bash
+# Run fast unit tests (recommended for development)
+python run_tests.py
+
+# Run tests with coverage
+python run_tests.py --cov
+
+# Run all tests including slow integration tests
+python run_tests.py --all
+
+# Run pytest directly with specific markers
+uv run pytest tests/ -m unit -v
+uv run pytest tests/ -m integration -v
+uv run pytest tests/ -m slow -v
 ```
 
 ### Testing Commands
