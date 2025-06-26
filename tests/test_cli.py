@@ -233,3 +233,107 @@ def test_search_with_threshold_option(runner, isolated_db):
         
         result = runner.invoke(cli, ['search', 'test', '--threshold', '0.5'])
         assert result.exit_code == 0
+
+
+@pytest.mark.unit
+def test_reset_command_help(runner):
+    """Test reset command help."""
+    result = runner.invoke(cli, ['reset', '--help'])
+    assert result.exit_code == 0
+    assert 'Reset the image search database' in result.output
+    assert '--confirm' in result.output
+    assert '--dry-run' in result.output
+
+
+@pytest.mark.unit
+def test_reset_no_database(runner, tmp_path):
+    """Test reset command when no database exists."""
+    with patch('image_search_cli.Path.home') as mock_home:
+        mock_home.return_value = tmp_path
+        result = runner.invoke(cli, ['reset'])
+        assert result.exit_code == 0
+        assert 'No database found' in result.output
+
+
+@pytest.mark.unit
+def test_reset_dry_run(runner, tmp_path):
+    """Test reset command with dry-run option."""
+    # Create a fake database file
+    db_dir = tmp_path / '.image-search'
+    db_dir.mkdir()
+    db_file = db_dir / 'database.db'
+    db_file.write_text('fake database')
+    
+    with patch('image_search_cli.Path.home') as mock_home, \
+         patch('image_search_cli.ImageSearchDB') as mock_db_class:
+        
+        mock_home.return_value = tmp_path
+        
+        # Mock database stats
+        mock_db = Mock()
+        mock_db.conn.execute.return_value.fetchone.return_value = [5]  # 5 images
+        mock_db_class.return_value = mock_db
+        
+        result = runner.invoke(cli, ['reset', '--dry-run'])
+        assert result.exit_code == 0
+        assert 'DRY RUN' in result.output
+        assert 'Files that would be removed' in result.output
+        assert str(db_file) in result.output
+        
+        # Verify file still exists after dry run
+        assert db_file.exists()
+
+
+@pytest.mark.unit
+def test_reset_with_confirm_flag(runner, tmp_path):
+    """Test reset command with --confirm flag."""
+    # Create a fake database file
+    db_dir = tmp_path / '.image-search'
+    db_dir.mkdir()
+    db_file = db_dir / 'database.db'
+    db_file.write_text('fake database')
+    
+    with patch('image_search_cli.Path.home') as mock_home, \
+         patch('image_search_cli.ImageSearchDB') as mock_db_class:
+        
+        mock_home.return_value = tmp_path
+        
+        # Mock database stats
+        mock_db = Mock()
+        mock_db.conn.execute.return_value.fetchone.return_value = [3]  # 3 images
+        mock_db_class.return_value = mock_db
+        
+        result = runner.invoke(cli, ['reset', '--confirm'])
+        assert result.exit_code == 0
+        assert 'Database reset complete' in result.output
+        
+        # Verify file was deleted
+        assert not db_file.exists()
+
+
+@pytest.mark.unit
+def test_reset_cancelled_by_user(runner, tmp_path):
+    """Test reset command cancelled by user input."""
+    # Create a fake database file
+    db_dir = tmp_path / '.image-search'
+    db_dir.mkdir()
+    db_file = db_dir / 'database.db'
+    db_file.write_text('fake database')
+    
+    with patch('image_search_cli.Path.home') as mock_home, \
+         patch('image_search_cli.ImageSearchDB') as mock_db_class:
+        
+        mock_home.return_value = tmp_path
+        
+        # Mock database stats
+        mock_db = Mock()
+        mock_db.conn.execute.return_value.fetchone.return_value = [2]  # 2 images
+        mock_db_class.return_value = mock_db
+        
+        # Simulate user saying 'no'
+        result = runner.invoke(cli, ['reset'], input='n\n')
+        assert result.exit_code == 0
+        assert 'Reset cancelled' in result.output
+        
+        # Verify file still exists
+        assert db_file.exists()

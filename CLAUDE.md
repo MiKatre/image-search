@@ -113,3 +113,10 @@ First run downloads ViT-B/32 model (~338MB). Subsequent runs load from cache. Mo
 
 - setuptools warnings about deprecated pkg_resources (cosmetic, doesn't affect functionality)
 - PyTorch compatibility constraints limit upgrade path until ecosystem resolves CVE-2025-32434 properly
+
+## Testing Notes
+
+- How to test: 
+  - `uv run python run_tests.py`
+  - `uv run pytest tests/ -m unit -v --tb=short`
+  - `uv run pytest tests/test_cli.py -k "reset" -v`

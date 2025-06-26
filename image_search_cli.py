@@ -459,6 +459,84 @@ def export(output):
     db.close()
 
 
+@cli.command()
+@click.option('--confirm', is_flag=True, help='Skip confirmation prompt')
+@click.option('--dry-run', is_flag=True, help='Show what would be deleted without actually deleting')
+def reset(confirm, dry_run):
+    """Reset the image search database by deleting all data."""
+    
+    # Check if database exists
+    db_path = Path.home() / '.image-search' / 'database.db'
+    db_dir = db_path.parent
+    
+    if not db_path.exists():
+        click.echo("No database found - nothing to reset")
+        return
+    
+    # Get current stats before deletion
+    try:
+        db = ImageSearchDB()
+        image_count = db.conn.execute("SELECT COUNT(*) FROM images").fetchone()[0]
+        vector_count = db.conn.execute("SELECT COUNT(*) FROM vec_images").fetchone()[0]
+        db.close()
+        
+        # Get database file size
+        db_size = db_path.stat().st_size / 1024 / 1024  # MB
+        
+        click.echo(f"Current database contains:")
+        click.echo(f"  • {image_count} indexed images")
+        click.echo(f"  • {vector_count} vector embeddings")
+        click.echo(f"  • Database size: {db_size:.1f} MB")
+        click.echo(f"  • Location: {db_path}")
+        
+    except Exception as e:
+        click.echo(f"Database exists but couldn't read stats: {e}")
+        click.echo(f"Database location: {db_path}")
+    
+    if dry_run:
+        click.echo("\n🔍 DRY RUN - No files would be deleted")
+        click.echo("Files that would be removed:")
+        click.echo(f"  • {db_path}")
+        try:
+            if db_dir.exists():
+                dir_contents = list(db_dir.iterdir())
+                if len(dir_contents) <= 1:  # Only database file or empty
+                    click.echo(f"  • {db_dir} (directory)")
+        except Exception:
+            pass  # Skip directory check if it fails
+        return
+    
+    # Confirmation prompt
+    if not confirm:
+        click.echo(f"\n⚠️  This will permanently delete all indexed images and embeddings!")
+        if not click.confirm("Are you sure you want to reset the database?", default=False):
+            click.echo("Reset cancelled")
+            return
+    
+    # Perform the reset
+    try:
+        if db_path.exists():
+            db_path.unlink()
+            click.echo(f"✓ Deleted database: {db_path}")
+        
+        # Remove directory if it's empty
+        try:
+            if db_dir.exists():
+                dir_contents = list(db_dir.iterdir())
+                if len(dir_contents) == 0:
+                    db_dir.rmdir()
+                    click.echo(f"✓ Removed empty directory: {db_dir}")
+        except Exception:
+            pass  # Skip directory removal if it fails
+        
+        click.echo("\n🎉 Database reset complete - starting fresh!")
+        click.echo("You can now add images with: image-search add <images>")
+        
+    except Exception as e:
+        click.echo(f"❌ Error during reset: {e}")
+        click.echo("You may need to manually delete the database files")
+
+
 def main():
     """Entry point for the CLI tool."""
     cli()
