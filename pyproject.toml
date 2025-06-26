@@ -1,7 +1,11 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "image-search"
 version = "0.1.0"
-description = "Add your description here"
+description = "CLI tool for semantic image search using CLIP embeddings and sqlite-vec"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -16,3 +20,9 @@ dependencies = [
     "torchvision>=0.17.0",
     "transformers>=4.53.0",
 ]
+
+[project.scripts]
+image-search = "image_search_cli:main"
+
+[tool.hatch.build.targets.wheel]
+only-include = ["image_search_cli.py"]
